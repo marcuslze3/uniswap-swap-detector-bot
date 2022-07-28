@@ -23,4 +23,6 @@ Describe each of the type of alerts fired by this agent
 
 The agent behaviour can be verified with the following transactions:
 
-- 0x3a0f757030beec55c22cbc545dd8a844cbbb2e6019461769e1bc3f3a95d10826 (15,000 USDT)
+- 0xc3e55f69dbf78d1f981caaae84004f17fcba9fd76700fef75afb808420de5e5f (1 finding, UniV3 USDT <> DAI swap)
+- 0x28c5cbcfc068ae479b93529a550fe7c7d9a674ff846bfa43d9c36e6593ad0e63 (1 finding, UniV3 USDC <> MATIC swap)
+- 0xf12b699acf9b8016c525a034a4c589c32546cab7ac9f57bc206a3d0c4118c670 (0 findings, UniV2 BOND <> USDT swap)
