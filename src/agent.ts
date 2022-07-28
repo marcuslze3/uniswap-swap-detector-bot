@@ -10,16 +10,13 @@ import {
 } from "forta-agent";
 
 import {
+  SWAP_EVENT,
+  UNISWAPV3FACTORY_ADDRESS,
   UniV3FactoryABI,
   UniV3PoolABI,
 } from "./utils"
 
 const ethers = require('ethers');
-
-// add these variables to a separate data file
-export const SWAP_EVENT =
-  "event Swap(address indexed sender,address indexed recipient, int256 amount0,int256 amount1,uint160 sqrtPriceX96, uint128 liquidity, int24 tick)"
-export const UNISWAPV3FACTORY_ADDRESS = "0x1f98431c8ad98523631ae4a59f267346ea31f984"
 
 //let provider = ethers.getDefaultProvider(); - whats the diff between this and the line below?
 let provider = new ethers.providers.JsonRpcProvider([getJsonRpcUrl()])
@@ -55,9 +52,8 @@ const handleTransaction: HandleTransaction = async (
   );
 
   for (var swapEvent of swapEvents) {
-
     // get the pool Address of the swap
-    const poolAddress = swapEvent.address // try with txEvent.to also?
+    const poolAddress = swapEvent.address
 
     // if checker function returns true for the swap pool's address, add to findings
     if (await isUniswapV3Pool(poolAddress)) {

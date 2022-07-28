@@ -6,69 +6,63 @@ import {
   createTransactionEvent,
   ethers,
 } from "forta-agent";
-import agent, {
-  ERC20_TRANSFER_EVENT,
-  TETHER_ADDRESS,
-  TETHER_DECIMALS,
-} from "./agent";
+import {
+  SWAP_EVENT,
+  UNISWAPV3FACTORY_ADDRESS,
+  UniV3FactoryABI,
+  UniV3PoolABI,
+} from "./utils"
+import agent from "./agent"
+import { Interface } from "ethers/lib/utils";
+import { TestTransactionEvent } from "forta-agent-tools/lib/tests";
 
-describe("high tether transfer agent", () => {
+describe("detect UniswapV3 swap", () => {
   let handleTransaction: HandleTransaction;
-  const mockTxEvent = createTransactionEvent({} as any);
+
 
   beforeAll(() => {
     handleTransaction = agent.handleTransaction;
   });
 
   describe("handleTransaction", () => {
-    it("returns empty findings if there are no Tether transfers", async () => {
-      mockTxEvent.filterLog = jest.fn().mockReturnValue([]);
+    it("returns empty findings if there are no Uniswap swaps", async () => {
+      const mockTxEvent = new TestTransactionEvent();
 
       const findings = await handleTransaction(mockTxEvent);
 
       expect(findings).toStrictEqual([]);
-      expect(mockTxEvent.filterLog).toHaveBeenCalledTimes(1);
-      expect(mockTxEvent.filterLog).toHaveBeenCalledWith(
-        ERC20_TRANSFER_EVENT,
-        TETHER_ADDRESS
-      );
     });
 
-    it("returns a finding if there is a Tether transfer over 10,000", async () => {
-      const mockTetherTransferEvent = {
-        args: {
-          from: "0xabc",
-          to: "0xdef",
-          value: ethers.BigNumber.from("20000000000"), //20k with 6 decimals
-        },
-      };
-      mockTxEvent.filterLog = jest
-        .fn()
-        .mockReturnValue([mockTetherTransferEvent]);
+    it("returns empty finding if swap event emitted from UniV2", async () => {
+      const UniV2PoolAddress = "0xe7A106b416f20e7C808f23E47d181773E434801C"
+
+      const mockTxEvent = new TestTransactionEvent()
+        .addEventLog("signature",)
 
       const findings = await handleTransaction(mockTxEvent);
 
-      const normalizedValue = mockTetherTransferEvent.args.value.div(
-        10 ** TETHER_DECIMALS
-      );
+      expect(findings).toStrictEqual([]);
+    });
+
+    it("returns a finding if there is a UniswapV3 swap", async () => {
+      const UniV3PoolAddress = "0xFAaCE66BD25abFF62718AbD6DB97560E414eC074"
+
+      const mockTxEvent = new TestTransactionEvent()
+        .addEventLog("signature", UniV3PoolAddress)
+
+      const findings = await handleTransaction(mockTxEvent);
+
       expect(findings).toStrictEqual([
         Finding.fromObject({
-          name: "High Tether Transfer",
-          description: `High amount of USDT transferred: ${normalizedValue}`,
-          alertId: "FORTA-1",
+          name: "UniswapV3 Swap",
+          description: "A UniswapV3 Swap has been detected",
+          alertId: "UNI-1",
           severity: FindingSeverity.Low,
           type: FindingType.Info,
           metadata: {
-            to: mockTetherTransferEvent.args.to,
-            from: mockTetherTransferEvent.args.from,
           },
         }),
       ]);
-      expect(mockTxEvent.filterLog).toHaveBeenCalledTimes(1);
-      expect(mockTxEvent.filterLog).toHaveBeenCalledWith(
-        ERC20_TRANSFER_EVENT,
-        TETHER_ADDRESS
-      );
     });
   });
 });
