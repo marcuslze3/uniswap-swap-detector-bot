@@ -16,6 +16,8 @@ import agent from "./agent"
 import { Interface } from "ethers/lib/utils";
 import { TestTransactionEvent } from "forta-agent-tools/lib/tests";
 
+const UNI_IFACE = new Interface([SWAP_EVENT]);
+
 describe("detect UniswapV3 swap", () => {
   let handleTransaction: HandleTransaction;
 
@@ -49,6 +51,19 @@ describe("detect UniswapV3 swap", () => {
 
       const mockTxEvent = new TestTransactionEvent()
         .addEventLog("signature", UniV3PoolAddress)
+        .addTraces({
+          to: "0xabc",
+          from: "0xdef",
+          input: UNI_IFACE.encodeFunctionData("Swap", [
+            "0xabc",
+            "0xcde",
+            100,
+            100,
+            5,
+            5,
+            5
+          ])
+        })
 
       const findings = await handleTransaction(mockTxEvent);
 

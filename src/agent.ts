@@ -18,8 +18,8 @@ import {
 
 const ethers = require('ethers');
 
-//let provider = ethers.getDefaultProvider(); - whats the diff between this and the line below?
-let provider = new ethers.providers.JsonRpcProvider([getJsonRpcUrl()])
+//let provider = ethers.getDefaultProvider(); //- whats the diff between this and the line below?
+let provider = new ethers.providers.JsonRpcProvider(getJsonRpcUrl())
 let UniswapV3FactoryContract = new ethers.Contract(UNISWAPV3FACTORY_ADDRESS,
   UniV3FactoryABI, provider);
 
@@ -32,9 +32,14 @@ async function isUniswapV3Pool(poolAddress: string) {
   const tokenB = await UniswapV3PoolContract.token1();
   const fee = await UniswapV3PoolContract.fee();
 
+  console.log("TokenA:", tokenA)
+  console.log("TokenB:", tokenB)
+
   let uniswapPoolAddress: string = await UniswapV3FactoryContract.getPool(tokenA, tokenB, fee);
 
-  if (uniswapPoolAddress == poolAddress) {
+  console.log("Uniswap Pool Address:", uniswapPoolAddress)
+
+  if (uniswapPoolAddress.toLowerCase() == poolAddress.toLowerCase()) {
     return true;
   }
 
@@ -54,6 +59,7 @@ const handleTransaction: HandleTransaction = async (
   for (var swapEvent of swapEvents) {
     // get the pool Address of the swap
     const poolAddress = swapEvent.address
+    console.log(poolAddress)
 
     // if checker function returns true for the swap pool's address, add to findings
     if (await isUniswapV3Pool(poolAddress)) {
