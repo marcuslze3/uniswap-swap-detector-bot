@@ -6,17 +6,24 @@ import {
   createTransactionEvent,
   ethers,
 } from "forta-agent";
+import { BigNumber } from "ethers";
 import {
   SWAP_EVENT,
-  UNISWAPV3FACTORY_ADDRESS,
-  UniV3FactoryABI,
+  UniV3FactoryAddress,
   UniV3PoolABI,
 } from "./utils"
 import agent from "./agent"
 import { Interface } from "ethers/lib/utils";
-import { TestTransactionEvent } from "forta-agent-tools/lib/tests";
+import {
+  createAddress,
+  MockEthersProvider,
+  TestTransactionEvent,
+} from "forta-agent-tools/lib/tests";
 
-const UNI_IFACE = new Interface([SWAP_EVENT]);
+const SWAP_IFACE = new Interface([SWAP_EVENT]);
+//const mockProvider = new MockEthersProvider();
+const USDT_DAI_POOL = "0x6B175474E89094C44Da98b954EedeAC495271d0F"
+
 
 describe("detect UniswapV3 swap", () => {
   let handleTransaction: HandleTransaction;
@@ -47,23 +54,16 @@ describe("detect UniswapV3 swap", () => {
     });
 
     it("returns a finding if there is a UniswapV3 swap", async () => {
-      const UniV3PoolAddress = "0xFAaCE66BD25abFF62718AbD6DB97560E414eC074"
+      const log1 = SWAP_IFACE.encodeEventLog(
+        SWAP_IFACE.getEvent("Swap"), [
+        createAddress("0xabc"),
+        createAddress("0x123"),
+        1, 2, 3, 4, 5
+      ]);
+
 
       const mockTxEvent = new TestTransactionEvent()
-        .addEventLog("signature", UniV3PoolAddress)
-        .addTraces({
-          to: "0xabc",
-          from: "0xdef",
-          input: UNI_IFACE.encodeFunctionData("Swap", [
-            "0xabc",
-            "0xcde",
-            100,
-            100,
-            5,
-            5,
-            5
-          ])
-        })
+        .addAnonymousEventLog(USDT_DAI_POOL, log1.data, ...log1.topics)
 
       const findings = await handleTransaction(mockTxEvent);
 

@@ -6,87 +6,54 @@ import {
   TransactionEvent,
   FindingSeverity,
   FindingType,
-  getJsonRpcUrl,
 } from "forta-agent";
 
 import {
   SWAP_EVENT,
-  UNISWAPV3FACTORY_ADDRESS,
-  UniV3FactoryABI,
+  UniV3FactoryAddress,
   UniV3PoolABI,
+  isUniswapV3Pool
 } from "./utils"
 
 const ethers = require('ethers');
 
-//let provider = ethers.getDefaultProvider(); //- whats the diff between this and the line below?
-let provider = new ethers.providers.JsonRpcProvider(getJsonRpcUrl())
-let UniswapV3FactoryContract = new ethers.Contract(UNISWAPV3FACTORY_ADDRESS,
-  UniV3FactoryABI, provider);
+function provideHandleTransaction(
+  poolAbi: string[],
+  factoryAddress: string): HandleTransaction {
+  return async (
+    txEvent: TransactionEvent
+  ) => {
+    const findings: Finding[] = [];
 
-// function to check if a poolAddress is a UniswapV3 pool
-// logic should take advantage of getPool(), which returns the pools address
-// when a swap event is emitted in a transaction.
-async function isUniswapV3Pool(poolAddress: string) {
-  let UniswapV3PoolContract = new ethers.Contract(poolAddress, UniV3PoolABI, provider);
-  const tokenA = await UniswapV3PoolContract.token0();
-  const tokenB = await UniswapV3PoolContract.token1();
-  const fee = await UniswapV3PoolContract.fee();
+    // filter the transaction logs for any Swap events
+    const swapEvents = txEvent.filterLog(
+      SWAP_EVENT
+    );
 
-  console.log("TokenA:", tokenA)
-  console.log("TokenB:", tokenB)
+    for (var swapEvent of swapEvents) {
+      // poolAddress of swap
+      const poolAddress = swapEvent.address
 
-  let uniswapPoolAddress: string = await UniswapV3FactoryContract.getPool(tokenA, tokenB, fee);
+      // if checker function returns true for the swap pool's address, add to findings
+      if (await isUniswapV3Pool(poolAddress, poolAbi, factoryAddress)) {
+        findings.push(
+          Finding.fromObject({
+            name: "UniswapV3 Swap",
+            description: "A UniswapV3 Swap has been detected",
+            alertId: "UNI-1",
+            severity: FindingSeverity.Low,
+            type: FindingType.Info,
+            metadata: {
+            },
+          })
+        );
+      }
+    }
 
-  console.log("Uniswap Pool Address:", uniswapPoolAddress)
-
-  if (uniswapPoolAddress.toLowerCase() == poolAddress.toLowerCase()) {
-    return true;
-  }
-
-  return false;
+    return findings;
+  };
 }
 
-const handleTransaction: HandleTransaction = async (
-  txEvent: TransactionEvent
-) => {
-  const findings: Finding[] = [];
-
-  // filter the transaction logs for any Swap events
-  const swapEvents = txEvent.filterLog(
-    SWAP_EVENT
-  );
-
-  for (var swapEvent of swapEvents) {
-    // get the pool Address of the swap
-    const poolAddress = swapEvent.address
-    console.log(poolAddress)
-
-    // if checker function returns true for the swap pool's address, add to findings
-    if (await isUniswapV3Pool(poolAddress)) {
-      findings.push(
-        Finding.fromObject({
-          name: "UniswapV3 Swap",
-          description: "A UniswapV3 Swap has been detected",
-          alertId: "UNI-1",
-          severity: FindingSeverity.Low,
-          type: FindingType.Info,
-          metadata: {
-          },
-        })
-      );
-    }
-  }
-
-  return findings;
-};
-
-// const handleBlock: HandleBlock = async (blockEvent: BlockEvent) => {
-//   const findings: Finding[] = [];
-//   // detect some block condition
-//   return findings;
-// }
-
 export default {
-  handleTransaction,
-  // handleBlock
+  handleTransaction: provideHandleTransaction(UniV3PoolABI, UniV3FactoryAddress),
 };
