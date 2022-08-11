@@ -5,34 +5,30 @@ import {
   HandleTransaction,
   TransactionEvent,
   FindingSeverity,
+  getJsonRpcUrl,
   FindingType,
 } from "forta-agent";
 
-import {
-  SWAP_EVENT,
-  UniV3FactoryAddress,
-  UniV3PoolABI,
-  isUniswapV3Pool
-} from "./utils"
+import { SWAP_EVENT, UniV3FactoryAddress, UniV3PoolABI, isUniswapV3Pool } from "./utils";
 
-const ethers = require('ethers');
+const ethers = require("ethers");
 
-function provideHandleTransaction(
-  poolAbi: string[],
-  factoryAddress: string): HandleTransaction {
-  return async (
-    txEvent: TransactionEvent
-  ) => {
+export function provideHandleTransaction(poolAbi: string[], factoryAddress: string): HandleTransaction {
+  return async (txEvent: TransactionEvent) => {
     const findings: Finding[] = [];
 
     // filter the transaction logs for any Swap events
-    const swapEvents = txEvent.filterLog(
-      SWAP_EVENT
-    );
+    const swapEvents = txEvent.filterLog(SWAP_EVENT);
 
     for (var swapEvent of swapEvents) {
       // poolAddress of swap
-      const poolAddress = swapEvent.address
+      const poolAddress = swapEvent.address;
+
+      let provider = new ethers.providers.JsonRpcProvider(getJsonRpcUrl());
+      let poolContract = new ethers.Contract(poolAddress, poolAbi, provider);
+
+      const tokenA = await poolContract.token0();
+      const tokenB = await poolContract.token1();
 
       // if checker function returns true for the swap pool's address, add to findings
       if (await isUniswapV3Pool(poolAddress, poolAbi, factoryAddress)) {
@@ -44,6 +40,9 @@ function provideHandleTransaction(
             severity: FindingSeverity.Low,
             type: FindingType.Info,
             metadata: {
+              pool: poolAddress.toLowerCase(),
+              token1: tokenA.toLowerCase(),
+              token2: tokenB.toLowerCase(),
             },
           })
         );

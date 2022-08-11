@@ -11,8 +11,8 @@ This bot detects transactions with UniswapV3 swaps
 
 - UNI-1
   - Fired when a transaction contains a UniswapV3 swap
-  - Severity is always set to "low" (mention any conditions where it could be something else)
-  - Type is always set to "info" (mention any conditions where it could be something else)
+  - Severity is always set to "low" 
+  - Type is always set to "info" 
 
 ## Test Data
 
