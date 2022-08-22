@@ -1,26 +1,58 @@
-import { FindingType, FindingSeverity, Finding, HandleTransaction, createTransactionEvent, ethers } from "forta-agent";
-import { BigNumber } from "ethers";
-import { SWAP_EVENT, UniV3FactoryAddress, UniV3PoolABI } from "./utils";
+import {
+  FindingType,
+  FindingSeverity,
+  Finding,
+  HandleTransaction,
+  createTransactionEvent,
+  ethers,
+  getEthersProvider
+} from "forta-agent";
+
+import {
+  createAddress,
+  MockEthersProvider,
+  TestTransactionEvent,
+} from "forta-agent-tools/lib/tests";
+
+import {
+  SWAP_EVENT,
+  UniV3FactoryAddress,
+  UniV3PoolABI
+} from "./utils";
+
 import { provideHandleTransaction } from "./agent";
 import { Interface } from "ethers/lib/utils";
-import { createAddress, MockEthersProvider, TestTransactionEvent } from "forta-agent-tools/lib/tests";
 
 const SWAP_IFACE = new Interface([SWAP_EVENT]);
+const FEE_IFACE = new Interface([UniV3PoolABI[0]]);
+const TOKEN0_IFACE = new Interface([UniV3PoolABI[1]]);
+const TOKEN1_IFACE = new Interface([UniV3PoolABI[2]]);
 const USDT_ETH_POOL = "0x4e68Ccd3E89f51C3074ca5072bbAC773960dFa36";
 const USDC_ETH_POOL = "0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640";
 const WETH_ADDRESS = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 const USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const USDT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+const USDC_WETH_MOCK_ADDRESS = createAddress("0xlol")
+
 
 describe("detect UniswapV3 swap", () => {
+
   let handleTransaction: HandleTransaction;
 
+  const mockProvider: MockEthersProvider = new MockEthersProvider();
+
   beforeAll(() => {
-    handleTransaction = provideHandleTransaction(UniV3PoolABI, UniV3FactoryAddress);
+    handleTransaction = provideHandleTransaction(mockProvider as any, UniV3PoolABI, UniV3FactoryAddress);
   });
+
+  beforeEach(() => {
+    mockProvider.clear()
+  })
 
   it("returns empty findings if there are no Uniswap swaps", async () => {
     const mockTxEvent = new TestTransactionEvent();
+
+    //mockProvider.addCallTo(USDC_WETH_MOCK_ADDRESS, 1, TOKEN0_IFACE, "token0", { inputs: [], outputs: [token0] })
 
     const findings = await handleTransaction(mockTxEvent);
 
@@ -28,8 +60,6 @@ describe("detect UniswapV3 swap", () => {
   });
 
   it("returns empty finding if swap event emitted from UniV2", async () => {
-    const UniV2PoolAddress = "0xe7A106b416f20e7C808f23E47d181773E434801C";
-
     const mockTxEvent = new TestTransactionEvent().addEventLog("signature");
 
     const findings = await handleTransaction(mockTxEvent);
